@@ -1,0 +1,94 @@
+```{r}
+export_summs(
+  mod_lib, mod_abs, mod_libprio,
+  model.names = c("Liberal", "Absolut", "Liberal - Absolut"),
+  coefs = c(
+    "(Achsenabschnitt)" = "(Intercept)",
+    "Ethnische Minderheit" = "ethminTRUE",
+    "Links-/Rechts-Skala" = "lrscale",
+    "Polit. Interesse" = "polintr",
+    "Geschlecht" = "gndr2",
+    "Alter" = "age",
+    "Formale Bildung" = "eisced",
+    "Soz. Vertrauen" = "soctrust"),
+  statistics = c(
+    "n" = "nobs",
+    "R² marginal" = "r.squared.fixed",
+    "R² konditional" = "r.squared")) %>%
+  set_number_format(numfmt_hux) %>%
+  set_caption("Regressionsergebnisse (Minderheitenstatus anhand ethn. Gruppe)") %>%
+  set_latex_float("h!")
+```
+
+\newpage
+
+```{r}
+export_summs(
+  mod_lib_self, mod_abs_self, mod_libprio_self,
+  model.names = c("Liberal", "Absolut", "Liberal - Absolut"),
+  coefs = c(
+    "(Achsenabschnitt)" = "(Intercept)",
+    "Diskrim. Minderheit" = "dscrgrpTRUE",
+    "Links-/Rechts-Skala" = "lrscale",
+    "Polit. Interesse" = "polintr",
+    "Geschlecht" = "gndr2",
+    "Alter" = "age",
+    "Formale Bildung" = "eisced",
+    "Soz. Vertrauen" = "soctrust"),
+  statistics = c(
+    "n" = "nobs",
+    "R² marginal" = "r.squared.fixed",
+    "R² konditional" = "r.squared")) %>%
+  set_number_format(numfmt_hux) %>%
+  set_caption("Regressionsergebnisse (Selbsteinschätzung: diskriminiert ja/nein?)") %>%
+  set_latex_float("h!")
+```
+
+\newpage
+
+```{r}
+export_summs(
+  mod_lib_selfs, mod_abs_selfs, mod_libprio_selfs,
+  model.names = c("Liberal", "Absolut", "Liberal - Absolut"),
+  coefs = c(
+    "Hautfarbe" = "dscr_raceTRUE",
+    "Nationalität" = "dscr_natnTRUE",
+    "Religion" = "dscr_reliTRUE",
+    "Sprache" = "dscr_langTRUE",
+    "Ethnizität" = "dscr_ethnTRUE",
+    "Alter" = "dscr_ageTRUE",
+    "Geschlecht" = "dscr_gndrTRUE",
+    "Sexualität" = "dscr_sexoTRUE",
+    "Behinderung" = "dscr_disaTRUE"),
+  statistics = c(
+    "n" = "nobs",
+    "R² marginal" = "r.squared.fixed",
+    "R² konditional" = "r.squared")) %>%
+  set_number_format(numfmt_hux) %>%
+  set_caption("Regressionsergebnisse (Selbsteinschätzung: diskriminiert nach Dimension); Kontrollvariablen aus Platzgründen ausgespart") %>%
+  set_latex_float("h!")
+```
+
+\newpage
+
+```{r}
+export_summs(
+  mod_lib_romasinti, mod_abs_romasinti, mod_libprio_romasinti,
+  model.names = c("Liberal", "Absolut", "Liberal - Absolut"),
+  coefs = c(
+    "(Achsenabschnitt)" = "(Intercept)",
+    "Rom*nja / Sinti*zze" = "romasintiTRUE",
+    "Links-/Rechts-Skala" = "lrscale",
+    "Polit. Interesse" = "polintr",
+    "Geschlecht" = "gndr2",
+    "Alter" = "age",
+    "Formale Bildung" = "eisced",
+    "Soz. Vertrauen" = "soctrust"),
+  statistics = c(
+    "n" = "nobs",
+    "R² marginal" = "r.squared.fixed",
+    "R² konditional" = "r.squared")) %>%
+  set_number_format(numfmt_hux) %>%
+  set_caption("Regressionsergebnisse (Rom*nja und Sinti*zze)") %>%
+  set_latex_float("h!")
+```

@@ -1,0 +1,10 @@
+```{r}
+ds %>%
+  select(cntry) %>%
+  group_by(cntry) %>%
+  tally() %>%
+  mutate(Anteil = paste(numfmt(n / sum(n) * 100), "%")) %>%
+  select("Land" = cntry, n, Anteil) %>%
+  kable()
+```
+

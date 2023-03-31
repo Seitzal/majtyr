@@ -1,0 +1,11 @@
+test*
+test_files/
+main_files/
+*.tex
+*.RData
+*.pdf
+*.Rproj
+.Rproj.user/
+.fuse_hidden*
+.Rhistory
+

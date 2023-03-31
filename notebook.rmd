@@ -1,0 +1,341 @@
+---
+title: "Notebook"
+output: pdf_document
+---
+
+# Prepare Environment
+
+```{r}
+rm(list = ls())
+options(scipen = 4)
+```
+
+```{r}
+library(plyr)
+library(psych)
+library(tidyverse)
+library(scales)
+library(lme4)
+library(sjPlot)
+library(jtools)
+library(broom.mixed)
+library(ggpubr)
+library(rcompanion)
+```
+
+# Load data
+
+```{r}
+ess10 = rbind.fill(read.csv("ESS10.csv"), read.csv("ESS10SC.csv"))
+```
+
+# Transform data: Democracy attitudes
+
+```{r}
+ess10.dematt = ess10 %>% select(
+  I1 = fairelc, 
+  I2 = dfprtal,
+  I3 = medcrgv,
+  I4 = rghmgpr,
+  I5 = votedir,
+  I6 = cttresa,
+  I7 = gptpelc,
+  I8 = gvctzpv,
+  I9 = grdfinc,
+  I10 = viepol,
+  I11 = wpestop,
+  I12  = keydec)
+ess10.dematt[ess10.dematt > 10] = NA
+```
+
+```{r}
+boxplot(ess10.dematt)
+```
+
+```{r}
+source("customplots.r")
+cor(ess10.dematt, use = "pairwise.complete.obs")
+plot_corheat(ess10.dematt, lowerhalf = TRUE)
+```
+
+# Factor Analysis
+
+```{r}
+kmo = KMO(cor(ess10.dematt, use = "pairwise.complete.obs"))
+kmo
+```
+
+```{r}
+eigen = data.frame(value = eigen(cor(ess10.dematt, use = "pairwise.complete.obs"))$values)
+eigen$expvar = eigen$value / sum(eigen$value)
+eigen$cexpvar = cumsum(eigen$expvar)
+eigen
+```
+
+```{r}
+plot(eigen$value, type='b')
+```
+
+```{r}
+fa.parallel(ess10.dematt, use = "pairwise")
+```
+
+```{r}
+fact = fa(
+  ess10.dematt,
+  weight = ess10$anweight,
+  nfactors = 3,
+  fm = "minres",
+  scores = "tenBerge")
+```
+
+```{r}
+summary(fact)
+```
+
+```{r}
+print(fact$loadings, cut = 0.3)
+```
+
+```{r}
+ds =
+  ess10.dematt %>%
+  data.frame(fact$scores) %>%
+  mutate(lib = MR1) %>%
+  mutate(abs = MR2) %>%
+  mutate(soc = MR3) %>%
+  mutate(libprio = lib - abs)
+
+boxplot(ds %>% select(lib, abs, soc, libprio))
+```
+
+# Transform data: Minority status & controls
+
+```{r}
+# Lookup table: Majority ethnic group per country
+maj = c(
+  AT = 11010,
+  BG = 14030,
+  CH = 11100,
+  CZ = 15020,
+  DE = 11070,
+  EE = 15030,
+  ES = 13070,
+  FI = 12020,
+  FR = 11050,
+  GR = 13030,
+  HR = 14040,
+  HU = 15040,
+  IS = 12030,
+  IT = 13040,
+  LT = 15060,
+  ME = 14080,
+  MK = 14060,
+  NL = 11040,
+  NO = 12040,
+  PL = 15090,
+  PT = 13060,
+  RS = 14110,
+  SE = 12060,
+  SI = 14120,
+  SK = 15130)
+```
+
+```{r}
+ds$weight = ess10$anweight
+
+ds$cntry = as.factor(ess10$cntry)
+
+ds$anctry1 = ess10$anctry1
+ds$anctry1[ds$anctry1 == 777777 | ds$anctry1 == 888888 | ds$anctry1 == 999999] = NA
+ds$anctry2 = ess10$anctry2
+ds$anctry2[ds$anctry2 == 555555 | ds$anctry2 == 777777 | ds$anctry2 == 888888 | ds$anctry2 == 999999] = NA
+ds$ethmin = ds$anctry1 != maj[ds$cntry]
+ds$ethmin[is.na(ds$anctry1)] = NA
+
+ds$romasinti = ess10$anctry1 == 14100 | ess10$anctry2 == 14100
+
+ds$migr = ess10$brncntr
+ds$migr = ds$migr - 1
+ds$migr[ds$migr > 1] = NA
+ds$migr[ds$migr != 1 & (ess10$facntr == 2 | ess10$mocntr == 2)] = 2
+ds$migr = as.factor(ds$migr)
+
+ds$dscrgrp = ess10$dscrgrp
+ds$dscrgrp[ds$dscrgrp > 2] = NA
+ds$dscrgrp[ds$dscrgrp == 2] = 0
+ds$dscrgrp = as.logical(ds$dscrgrp)
+
+ds$dscr_race = as.logical(ess10$dscrrce)
+ds$dscr_natn = as.logical(ess10$dscrntn)
+ds$dscr_reli = as.logical(ess10$dscrrlg)
+ds$dscr_lang = as.logical(ess10$dscrlng)
+ds$dscr_ethn = as.logical(ess10$dscretn)
+ds$dscr_age  = as.logical(ess10$dscrage)
+ds$dscr_gndr = as.logical(ess10$dscrgnd)
+ds$dscr_sexo = as.logical(ess10$dscrsex)
+ds$dscr_disa = as.logical(ess10$dscrdsb)
+
+ds$polintr = ess10$polintr
+ds$polintr[ds$polintr > 4] = NA
+ds$polintr = 5 - ds$polintr
+
+ds$lrscale = ess10$lrscale
+ds$lrscale[ds$lrscale > 10] = NA
+
+ds$gndr = ess10$gndr
+ds$gndr[ds$gndr > 2] = NA
+ds$gndr = as.factor(ds$gndr)
+
+ds$age = ess10$agea
+ds$age[ds$age > 150] = NA
+
+ds$eisced = ess10$eisced
+ds$eisced[ds$eisced == 0] = NA
+ds$eisced[ds$eisced > 10] = NA
+
+ds$soctrust = ess10$ppltrst
+ds$soctrust[ds$soctrust > 10] = NA
+```
+
+# Descriptive statistics
+
+```{r}
+plot_corheat(ds, lowerhalf = TRUE)
+```
+
+```{r}
+table(ds$ethmin)
+```
+
+```{r}
+table(ds$dscrgrp)
+```
+
+```{r}
+t = table(ds$ethmin, ds$dscrgrp)
+ad = t[1,1] * t[2,2]
+bc = t[1,2] * t[2,1]
+q = (ad - bc) / (ad + bc)
+q
+```
+
+```{r}
+wilcoxonRG(table(ds$ethmin, ds$eisced, useNA = "no"))
+```
+
+# Regressions: ethnic group membership
+
+```{r}
+
+mod_lib = lmer(
+  lib ~ ethmin + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_abs = lmer(
+  abs ~ ethmin + lrscale + polintr + gndr + age + eisced +  soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_libprio = lmer(
+  libprio ~ ethmin + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+export_summs(
+  mod_lib, mod_abs, mod_libprio,
+  model.names = c("Liberal", "Absolut", "Liberal - Absolut"),
+  statistics = NULL,
+  digits = 3)
+```
+
+```{r}
+ggarrange(
+  plot_model(mod_lib, type = "re", dot.size = 1.5, ci.lvl = .95) + ggtitle("Liberal"),
+  plot_model(mod_abs, type = "re", dot.size = 1.5, ci.lvl = .95) + ggtitle("Absolut"),
+  plot_model(mod_libprio, type = "re", dot.size = 1.5, ci.lvl = .95) + ggtitle("Liberal - Absolut"),
+  ncol = 3, nrow = 1)
+```
+
+# Regressions: Discriminated group (self, overall)
+
+```{r}
+
+mod_lib_self = lmer(
+  lib ~ dscrgrp + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_abs_self = lmer(
+  abs ~ dscrgrp + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_libprio_self = lmer(
+  libprio ~ dscrgrp + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+export_summs(
+  mod_lib_self, mod_abs_self, mod_libprio_self,
+  model.names = c("Liberal", "Absolute", "Liberal - Absolute"),
+  statistics = NULL,
+  digits = 3)
+
+```
+
+# Regressions: Discriminated group (self, specific)
+
+```{r}
+
+mod_lib_selfs = lmer(
+  lib ~ dscr_race + dscr_natn + dscr_reli + dscr_lang + dscr_ethn + 
+    dscr_age + dscr_gndr + dscr_sexo + dscr_disa +
+    lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_abs_selfs = lmer(
+  abs ~ dscr_race + dscr_natn + dscr_reli + dscr_lang + dscr_ethn + 
+    dscr_age + dscr_gndr + dscr_sexo + dscr_disa +
+    lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_libprio_selfs = lmer(
+  libprio ~ dscr_race + dscr_natn + dscr_reli + dscr_lang + dscr_ethn + 
+    dscr_age + dscr_gndr + dscr_sexo + dscr_disa +
+    lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+export_summs(
+  mod_lib_selfs, mod_abs_selfs, mod_libprio_selfs,
+  model.names = c("Liberal", "Absolute", "Liberal - Absolute"),
+  statistics = NULL,
+  digits = 3)
+
+```
+
+# Regressions: Roma and Sinti
+
+```{r}
+
+mod_lib_romasinti = lmer(
+  lib ~ romasinti + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_abs_romasinti = lmer(
+  abs ~ romasinti + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+mod_libprio_romasinti = lmer(
+  libprio ~ romasinti + lrscale + polintr + gndr + age + eisced + soctrust + (1 | cntry),
+  data = ds, weight = ess10$anweight)
+
+export_summs(
+  mod_lib_romasinti, mod_abs_romasinti, mod_libprio_romasinti,
+  model.names = c("Liberal", "Absolute", "Liberal - Absolute"),
+  statistics = NULL,
+  digits = 3)
+
+```
+
+# Export
+
+```{r}
+save.image(file = "results.RData")
+```
+
